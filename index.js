@@ -20,22 +20,34 @@ function runSetupWizard() {
     rl.question("1️⃣  Paste your Gemini API Key(s): ", (apiKeysInput) => {
         rl.question("2️⃣  Enter your 11-digit phone number (e.g., 01712371505): ", (phone) => {
             
-            const apiKeys = apiKeysInput.split(',').map(key => key.trim()).filter(key => key.length > 0);
-            
-            let formattedNumber = phone.trim();
-            if (formattedNumber.startsWith('0')) formattedNumber = '88' + formattedNumber;
-            else if (!formattedNumber.startsWith('880')) formattedNumber = '880' + formattedNumber;
-            
-            const adminId = formattedNumber + "@c.us";
+            console.log("\nTip: Windows example -> C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe");
+            console.log("Tip: Linux example   -> /usr/bin/chromium");
+            rl.question("3️⃣  Paste your exact Browser Executable Path: ", (browserPathInput) => {
+                
+                const apiKeys = apiKeysInput.split(',').map(key => key.trim()).filter(key => key.length > 0);
+                
+                let formattedNumber = phone.trim();
+                if (formattedNumber.startsWith('0')) formattedNumber = '88' + formattedNumber;
+                else if (!formattedNumber.startsWith('880')) formattedNumber = '880' + formattedNumber;
+                
+                const adminId = formattedNumber + "@c.us";
+                
+                // Clean up the browser path (removes accidental quotes if they copy-pasted it)
+                const cleanBrowserPath = browserPathInput.replace(/^["']|["']$/g, '').trim();
 
-            const configData = { apiKeys: apiKeys, adminNumber: adminId };
+                const configData = { 
+                    apiKeys: apiKeys, 
+                    adminNumber: adminId,
+                    browserPath: cleanBrowserPath
+                };
 
-            fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
-            console.log(`\n✅ Saved! Loaded ${apiKeys.length} API Key(s).`);
-            console.log("Starting the bot now...\n");
-            rl.close();
-            
-            startBot(configData);
+                fs.writeFileSync(CONFIG_FILE, JSON.stringify(configData, null, 2));
+                console.log(`\n✅ Saved! Loaded ${apiKeys.length} API Key(s) and custom browser path.`);
+                console.log("Starting the bot now...\n");
+                rl.close();
+                
+                startBot(configData);
+            });
         });
     });
 }
@@ -134,11 +146,12 @@ function startBot(config) {
         }
     }
 
-    // --- WhatsApp Client Setup (Using Brave Browser) ---
+    // --- WhatsApp Client Setup ---
     const client = new Client({ 
         authStrategy: new LocalAuth(),
         puppeteer: {
-            executablePath: 'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe'
+            executablePath: config.browserPath, // <--- Now it reads from the user's config file!
+            args: ['--no-sandbox', '--disable-setuid-sandbox'] // Keeps it safe for Kali/Linux VMs
         }
     });
 
